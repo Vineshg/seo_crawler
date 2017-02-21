@@ -3,6 +3,12 @@ var cheerio = require('cheerio');
 var csvWriter = require('csv-write-stream');
 var fs = require('fs');
 
+var args = process.argv.slice(2);
+console.log(typeof args[0]);
+if(typeof args[0] == 'undefined'){
+	throw new Error('No URL submitted');
+}
+
 var writer = csvWriter({
 	headers: ['url', 'title', 'viewport', 'csrf-token', 
 			  'description', 'keywords', 'og:title', 'og:type',
@@ -12,9 +18,9 @@ var writer = csvWriter({
 var d = new Date();
 var n = d.getTime();
 
-writer.pipe(fs.createWriteStream('crawls/' + n + '-crawl.csv'));
+writer.pipe(fs.createWriteStream('crawls/'+ args[0] + '_' + n + '-crawl.csv'));
 
-var crawler = new Crawler("http://originalvinyl.net");
+var crawler = new Crawler('http://' + args[0]);
 
 crawler.interval = 100;
 crawler.maxConcurrency = 6;
@@ -26,11 +32,12 @@ crawler.on("fetchcomplete", function (queueItem, responseBuffer, response) {
 	var cleanMeta = { url: queueItem.url ,title:  $('title').text() };
 	var words = 0;
 	var meta = $('meta');
-	var paragraphs = $('p');
 
-	for(var i = 0; i < paragraphs.length; i++){
-		//TODO count all words on page
-	}
+	$('div').each(function(){
+		var str = $(this).html().replace(/<[^>]*>/g,'').replace(/[^\w\s]/gi, '').replace(/\t/g,'').replace(/\s+/,' ');
+		words += str.split(' ').filter(String).length;
+	});
+
 	cleanMeta['words'] = words;
 
 	for(var i = 0; i < meta.length; i++){
